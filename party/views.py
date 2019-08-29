@@ -1,32 +1,54 @@
-from .models import Party
-from .serializers import PartyShortSerializer, PartyDetailSerializer
-
+from django.shortcuts import get_object_or_404
+from rest_framework import permissions, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import generics
-from rest_framework import permissions
+
+from .models import Party
+from .serializers import PartyDetailSerializer, PartyShortSerializer
 
 
-class PartyDetail(generics.RetrieveAPIView):
-    serializer_class = PartyDetailSerializer
-    queryset = Party.objects.all()
+class UserPermission(permissions.BasePermission):
+    """
+    Only authenticated users can register/unregister for party
+    """
+
+    def has_permission(self, request, view):
+        if view.action in ('list', 'retrieve'):
+            return True
+        elif view.action in ('register', 'un_register'):
+            return request.user.is_authenticated
+
+        return False
 
 
-class PartyList(generics.ListAPIView):
-    serializer_class = PartyShortSerializer
-    queryset = Party.objects.all()
+class PartyViewSet(viewsets.ViewSet):
+    permission_classes = (UserPermission,)
 
+    def list(self, request):
+        queryset = Party.objects.all()
+        serializer_class = PartyShortSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer_class.data)
 
-class PartyRegister(generics.GenericAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = PartyDetailSerializer
-    queryset = Party.objects.all()
+    def retrieve(self, request, pk=None):
+        queryset = Party.objects.all()
+        party = get_object_or_404(queryset, pk=pk)
+        serializer = PartyDetailSerializer(party, context={'request': request})
+        return Response(serializer.data)
 
-    def put(self, request, *args, **kwargs):
-        party = self.get_object()
+    @action(methods=['put'], detail=True)
+    def register(self, request, pk):
+        """Register user to party"""
+        queryset = Party.objects.all()
+        party = get_object_or_404(queryset, pk=pk)
+
         party.members.add(request.user)
-        return Response(self.serializer_class(instance=party, context={'request': request}).data)
+        return self.retrieve(request, pk)
 
-    def delete(self, request, *args, **kwargs):
-        party = self.get_object()
+    @register.mapping.delete
+    def un_register(self, request, pk):
+        """Remove user from party"""
+        queryset = Party.objects.all()
+        party = get_object_or_404(queryset, pk=pk)
+
         party.members.remove(request.user)
-        return Response(self.serializer_class(instance=party, context={'request': request}).data)
+        return self.retrieve(request, pk)

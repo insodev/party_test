@@ -1,1 +1,5 @@
-from .models import PartyTest
+from .party import PartyTest
+
+__all__ = [
+    'PartyTest',
+]

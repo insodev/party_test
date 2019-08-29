@@ -1,10 +1,10 @@
 from django.test import TestCase
-from ..models import User, Party
-from django.utils import timezone
 from django.urls import reverse
-
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
+
+from ..models import Party, User
 
 
 class PartyTest(TestCase):
@@ -76,8 +76,13 @@ class PartyTest(TestCase):
         self.assertFalse(self.grey_party.has_members)
         grey_response = self.grey_client.put(self.url_grey_party_register)
         self.assertEqual(grey_response.status_code, status.HTTP_200_OK)
-        self.assertTrue(self.grey_party.has_members)
+        self.assertTrue(self.grey_party.has_members, msg='{url} пользователь не добавлен'.format(
+            url=self.url_grey_party_register
+        ))
         self.grey_client.delete(self.url_grey_party_register)
-        self.assertFalse(self.grey_party.has_members)
+        self.assertFalse(self.grey_party.has_members, msg='{url} пользователь {user} не удален'.format(
+            url=self.url_grey_party_register,
+            user=self.grey,
+        ))
         response = self.client.put(self.url_grey_party_register)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

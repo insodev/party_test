@@ -1,4 +1,4 @@
-from .party import PartyShortSerializer, PartyDetailSerializer
+from .party import PartyDetailSerializer, PartyShortSerializer
 from .user import UserSerializer
 
 __all__ = [
