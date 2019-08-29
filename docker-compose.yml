@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+
+  migrate:
+    build: .
+    command: python manage.py migrate
+
+    volumes:
+    - .:/code
+
+    depends_on:
+    - db
+
+  tests:
+    build: .
+    command: python manage.py test
+
+    volumes:
+    - .:/code
+
+    depends_on:
+    - db
+    - migrate
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+
+    volumes:
+    - .:/code
+    ports:
+    - "8000:8000"
+    depends_on:
+    - db
+    - migrate
+    - tests
+
+
